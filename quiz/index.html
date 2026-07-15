@@ -1,0 +1,733 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <!-- ===== FUNNEL STEP GUARD (DEVE VIR ANTES DE TUDO) =====
+         quiz = step 2. Se o usuário já passou de aqui (roleta=3 ou loja=4)
+         e voltou, redireciona IMEDIATAMENTE pra /back2 sem renderizar nada. -->
+    <script>
+        (function () {
+            try {
+                var step = parseInt(localStorage.getItem('shopeeFunnelStep') || '0', 10);
+                if (step > 2) {
+                    var qs = window.location.search || '';
+                    window.location.replace('../back2/' + qs);
+                    return;
+                }
+                if (2 > step) localStorage.setItem('shopeeFunnelStep', '2');
+            } catch (e) { }
+        })();
+    </script>
+
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#EE4D2D">
+    <title>Quiz Shopee — Responda e ganhe até 95% OFF</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@500;600;700;800;900&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+            --shopee: #EE4D2D;
+            --shopee-dark: #D7401C;
+            --shopee-soft: #FFF1ED;
+            --text: #1F2937;
+            --text-muted: #6B7280;
+            --border: #E5E7EB;
+            --bg: #FAF7F5;
+            --success: #16A34A;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        html,
+        body {
+            min-height: 100%;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            padding-bottom: 28px;
+        }
+
+        /* ===== HEADER ===== */
+        .quiz-header {
+            background: linear-gradient(135deg, #FF6B35 0%, #EE4D2D 100%);
+            padding: 18px 16px 22px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 14px rgba(238, 77, 45, .18);
+        }
+
+        .quiz-header img {
+            height: 38px;
+            width: auto;
+            filter: brightness(0) invert(1) drop-shadow(0 2px 6px rgba(0, 0, 0, .15));
+        }
+
+        /* ===== CONTAINER ===== */
+        .quiz {
+            max-width: 480px;
+            margin: 0 auto;
+            padding: 0 16px;
+        }
+
+        /* ===== PROGRESS ===== */
+        .progress-wrap {
+            margin-top: -14px;
+            background: #fff;
+            border-radius: 16px;
+            padding: 14px 16px;
+            box-shadow: 0 10px 25px -8px rgba(0, 0, 0, .12);
+            position: relative;
+            z-index: 2;
+        }
+
+        .progress-info {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 8px;
+        }
+
+        .step-label {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text-muted);
+        }
+
+        .step-label b {
+            color: var(--shopee);
+            font-weight: 800;
+        }
+
+        .step-percent {
+            font-size: 14px;
+            font-weight: 800;
+            color: var(--shopee);
+            font-variant-numeric: tabular-nums;
+        }
+
+        .progress-track {
+            position: relative;
+            height: 10px;
+            background: #F3F4F6;
+            border-radius: 999px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            width: 17%;
+            background: linear-gradient(90deg, #FF8533 0%, var(--shopee) 100%);
+            border-radius: 999px;
+            transition: width .5s cubic-bezier(.16, 1, .3, 1);
+            position: relative;
+        }
+
+        .progress-fill::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, .6), transparent);
+            animation: shimmer 2.2s linear infinite;
+        }
+
+        /* ===== REWARD BANNER ===== */
+        .reward-banner {
+            margin-top: 14px;
+            background: linear-gradient(90deg, #FFF8E1 0%, #FFE8CC 100%);
+            border: 1px dashed #F5B400;
+            border-radius: 14px;
+            padding: 10px 14px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 13.5px;
+            font-weight: 600;
+            color: #92400E;
+        }
+
+        .reward-banner .gift {
+            font-size: 20px;
+            animation: wiggle 2.4s ease-in-out infinite;
+        }
+
+        .reward-banner b {
+            color: #B45309;
+            font-weight: 800;
+        }
+
+        /* ===== QUESTION CARD ===== */
+        .question {
+            background: #fff;
+            border-radius: 18px;
+            padding: 18px 16px 20px;
+            margin-top: 14px;
+            box-shadow: 0 6px 20px -6px rgba(0, 0, 0, .08);
+            display: none;
+            animation: slideIn .35s ease;
+        }
+
+        .question.active {
+            display: block;
+        }
+
+        .q-image {
+            width: 100%;
+            max-width: 100%;
+            height: auto;
+            border-radius: 12px;
+            display: block;
+            margin: 0 auto 14px;
+            object-fit: cover;
+        }
+
+        .q-title {
+            font-size: clamp(17px, 4.6vw, 20px);
+            font-weight: 800;
+            color: var(--text);
+            line-height: 1.3;
+            text-align: center;
+            margin-bottom: 16px;
+            padding: 0 4px;
+        }
+
+        /* ===== OPÇÕES ===== */
+        .options {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .opt {
+            font-family: inherit;
+            background: #fff;
+            border: 2px solid var(--border);
+            border-radius: 14px;
+            padding: 14px 14px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            cursor: pointer;
+            transition: all .2s ease;
+            text-align: left;
+            font-size: 15px;
+            font-weight: 600;
+            color: var(--text);
+            position: relative;
+            min-height: 56px;
+        }
+
+        .opt:hover {
+            border-color: var(--shopee);
+            background: var(--shopee-soft);
+            transform: translateY(-1px);
+        }
+
+        .opt:focus-visible {
+            outline: none;
+            border-color: var(--shopee);
+            box-shadow: 0 0 0 3px rgba(238, 77, 45, .22);
+        }
+
+        .opt .opt-icon {
+            flex-shrink: 0;
+            width: 36px;
+            height: 36px;
+            border-radius: 10px;
+            background: var(--shopee-soft);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            transition: all .2s ease;
+        }
+
+        .opt .opt-text {
+            flex: 1;
+            line-height: 1.25;
+        }
+
+        .opt .opt-check {
+            flex-shrink: 0;
+            width: 22px;
+            height: 22px;
+            border-radius: 50%;
+            border: 2px solid var(--border);
+            background: #fff;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            transition: all .2s ease;
+        }
+
+        .opt .opt-check::after {
+            content: '';
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: transparent;
+            transition: background .2s ease;
+        }
+
+        .opt.selected {
+            border-color: var(--shopee);
+            background: var(--shopee-soft);
+            box-shadow: 0 4px 14px rgba(238, 77, 45, .18);
+        }
+
+        .opt.selected .opt-icon {
+            background: var(--shopee);
+            color: #fff;
+            transform: scale(1.05);
+        }
+
+        .opt.selected .opt-check {
+            border-color: var(--shopee);
+            background: var(--shopee);
+        }
+
+        .opt.selected .opt-check::after {
+            background: #fff;
+        }
+
+        .opt.selected .opt-text {
+            color: var(--shopee-dark);
+            font-weight: 700;
+        }
+
+        /* ===== NEXT BUTTON ===== */
+        .next-btn {
+            width: 100%;
+            margin-top: 18px;
+            border: 0;
+            background: linear-gradient(90deg, #FF6B35, var(--shopee));
+            color: #fff;
+            font-family: inherit;
+            font-weight: 800;
+            font-size: 17px;
+            letter-spacing: .3px;
+            padding: 16px 18px;
+            border-radius: 14px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            box-shadow: 0 10px 22px -6px rgba(238, 77, 45, .45);
+            transition: all .2s ease;
+            min-height: 54px;
+        }
+
+        .next-btn:not(:disabled):hover {
+            transform: translateY(-2px);
+            box-shadow: 0 14px 28px -8px rgba(238, 77, 45, .55);
+        }
+
+        .next-btn:not(:disabled):active {
+            transform: translateY(0);
+        }
+
+        .next-btn:disabled {
+            background: #D1D5DB;
+            color: #fff;
+            cursor: not-allowed;
+            box-shadow: none;
+            opacity: .85;
+        }
+
+        .next-btn .arrow {
+            transition: transform .2s ease;
+        }
+
+        .next-btn:not(:disabled):hover .arrow {
+            transform: translateX(4px);
+        }
+
+        .next-btn.pulse {
+            animation: ctaPulse 1.6s ease-in-out infinite;
+        }
+
+        /* ===== PROGRESS DOTS ===== */
+        .dots {
+            display: flex;
+            justify-content: center;
+            gap: 6px;
+            margin-top: 16px;
+        }
+
+        .dots span {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #E5E7EB;
+            transition: all .25s ease;
+        }
+
+        .dots span.done {
+            background: var(--shopee);
+            width: 22px;
+            border-radius: 999px;
+        }
+
+        .dots span.current {
+            background: var(--shopee);
+        }
+
+        /* ===== ANIMAÇÕES ===== */
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(14px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes shimmer {
+            0% {
+                transform: translateX(-100%);
+            }
+
+            100% {
+                transform: translateX(100%);
+            }
+        }
+
+        @keyframes wiggle {
+
+            0%,
+            100% {
+                transform: rotate(0);
+            }
+
+            25% {
+                transform: rotate(-10deg);
+            }
+
+            75% {
+                transform: rotate(10deg);
+            }
+        }
+
+        @keyframes ctaPulse {
+
+            0%,
+            100% {
+                transform: scale(1);
+            }
+
+            50% {
+                transform: scale(1.025);
+            }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+
+            *,
+            *::before,
+            *::after {
+                animation-duration: .001ms !important;
+                transition-duration: .001ms !important;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <header class="quiz-header">
+        <img src="images/brand-banner.3f2f57a3.png" alt="Shopee">
+    </header>
+
+    <main class="quiz">
+
+        <div class="progress-wrap">
+            <div class="progress-info">
+                <span class="step-label">Pergunta <b id="curStep">1</b> de 6</span>
+                <span class="step-percent" id="progressPct">17%</span>
+            </div>
+            <div class="progress-track">
+                <div class="progress-fill" id="progressFill" style="width: 17%;"></div>
+            </div>
+        </div>
+
+        <div class="reward-banner">
+            <span class="gift" aria-hidden="true">🎁</span>
+            <span>Responda e ganhe até <b>95% OFF</b> + Frete Grátis</span>
+        </div>
+
+        <!-- Pergunta 1 -->
+        <section class="question active" id="p1">
+            <img src="images/11.png" class="q-image" alt="">
+            <h2 class="q-title">O que você mais gosta na Shopee?</h2>
+            <div class="options">
+                <button class="opt" type="button" data-q="1" data-v="a">
+                    <span class="opt-icon">⚡</span>
+                    <span class="opt-text">Promoções relâmpago</span>
+                    <span class="opt-check" aria-hidden="true"></span>
+                </button>
+                <button class="opt" type="button" data-q="1" data-v="b">
+                    <span class="opt-icon">🎟️</span>
+                    <span class="opt-text">Cupons de desconto</span>
+                    <span class="opt-check" aria-hidden="true"></span>
+                </button>
+                <button class="opt" type="button" data-q="1" data-v="c">
+                    <span class="opt-icon">🚚</span>
+                    <span class="opt-text">Agilidade na entrega</span>
+                    <span class="opt-check" aria-hidden="true"></span>
+                </button>
+                <button class="opt" type="button" data-q="1" data-v="d">
+                    <span class="opt-icon">🛡️</span>
+                    <span class="opt-text">Garantia e segurança</span>
+                    <span class="opt-check" aria-hidden="true"></span>
+                </button>
+            </div>
+        </section>
+
+        <!-- Pergunta 2 -->
+        <section class="question" id="p2">
+            <img src="images/4.png" class="q-image" alt="">
+            <h2 class="q-title">Você é cliente fiel da Shopee? Se sim, há quanto tempo?</h2>
+            <div class="options">
+                <button class="opt" type="button" data-q="2" data-v="a">
+                    <span class="opt-icon">⭐</span>
+                    <span class="opt-text">Sim, há mais de 5 anos</span>
+                    <span class="opt-check" aria-hidden="true"></span>
+                </button>
+                <button class="opt" type="button" data-q="2" data-v="b">
+                    <span class="opt-icon">👍</span>
+                    <span class="opt-text">Sim, entre 1 e 5 anos</span>
+                    <span class="opt-check" aria-hidden="true"></span>
+                </button>
+                <button class="opt" type="button" data-q="2" data-v="c">
+                    <span class="opt-icon">🆕</span>
+                    <span class="opt-text">Sim, há menos de 1 ano</span>
+                    <span class="opt-check" aria-hidden="true"></span>
+                </button>
+                <button class="opt" type="button" data-q="2" data-v="d">
+                    <span class="opt-icon">✨</span>
+                    <span class="opt-text">Não, sou novo cliente</span>
+                    <span class="opt-check" aria-hidden="true"></span>
+                </button>
+            </div>
+        </section>
+
+        <!-- Pergunta 3 -->
+        <section class="question" id="p3">
+            <img src="images/12.png" class="q-image" alt="">
+            <h2 class="q-title">Já ouviu falar da Shopee Shop, a loja oficial dentro do app?</h2>
+            <div class="options">
+                <button class="opt" type="button" data-q="3" data-v="a">
+                    <span class="opt-icon">✅</span>
+                    <span class="opt-text">Sim, já conheço</span>
+                    <span class="opt-check" aria-hidden="true"></span>
+                </button>
+                <button class="opt" type="button" data-q="3" data-v="b">
+                    <span class="opt-icon">👀</span>
+                    <span class="opt-text">Já ouvi falar, mas nunca usei</span>
+                    <span class="opt-check" aria-hidden="true"></span>
+                </button>
+                <button class="opt" type="button" data-q="3" data-v="c">
+                    <span class="opt-icon">❓</span>
+                    <span class="opt-text">Não, nunca conheci</span>
+                    <span class="opt-check" aria-hidden="true"></span>
+                </button>
+                <button class="opt" type="button" data-q="3" data-v="d">
+                    <span class="opt-icon">🤩</span>
+                    <span class="opt-text">Não, mas adorei a ideia!</span>
+                    <span class="opt-check" aria-hidden="true"></span>
+                </button>
+            </div>
+        </section>
+
+        <!-- Pergunta 4 -->
+        <section class="question" id="p4">
+            <img src="images/mercy.png" class="q-image" alt="">
+            <h2 class="q-title">Sabia que hoje a loja oficial da Shopee está com promoções exclusivas?</h2>
+            <div class="options">
+                <button class="opt" type="button" data-q="4" data-v="a">
+                    <span class="opt-icon">🔥</span>
+                    <span class="opt-text">Sim, quero conferir</span>
+                    <span class="opt-check" aria-hidden="true"></span>
+                </button>
+                <button class="opt" type="button" data-q="4" data-v="b">
+                    <span class="opt-icon">🎉</span>
+                    <span class="opt-text">Sim, estou muito animado(a)!</span>
+                    <span class="opt-check" aria-hidden="true"></span>
+                </button>
+                <button class="opt" type="button" data-q="4" data-v="c">
+                    <span class="opt-icon">😅</span>
+                    <span class="opt-text">Sim, mas nunca participei</span>
+                    <span class="opt-check" aria-hidden="true"></span>
+                </button>
+                <button class="opt" type="button" data-q="4" data-v="d">
+                    <span class="opt-icon">💡</span>
+                    <span class="opt-text">Não, mas adorei a ideia!</span>
+                    <span class="opt-check" aria-hidden="true"></span>
+                </button>
+            </div>
+        </section>
+
+        <!-- Pergunta 5 -->
+        <section class="question" id="p5">
+            <img src="images/7.png" class="q-image" alt="">
+            <h2 class="q-title">Você pode ganhar produtos de mais de R$ 2 mil com 95% OFF e frete grátis!</h2>
+            <div class="options">
+                <button class="opt" type="button" data-q="5" data-v="a">
+                    <span class="opt-icon">😍</span>
+                    <span class="opt-text">Esperei anos por isso!</span>
+                    <span class="opt-check" aria-hidden="true"></span>
+                </button>
+                <button class="opt" type="button" data-q="5" data-v="b">
+                    <span class="opt-icon">🎂</span>
+                    <span class="opt-text">Amo promoções de aniversário!</span>
+                    <span class="opt-check" aria-hidden="true"></span>
+                </button>
+                <button class="opt" type="button" data-q="5" data-v="c">
+                    <span class="opt-icon">💚</span>
+                    <span class="opt-text">Sempre confio na Shopee!</span>
+                    <span class="opt-check" aria-hidden="true"></span>
+                </button>
+                <button class="opt" type="button" data-q="5" data-v="d">
+                    <span class="opt-icon">🛒</span>
+                    <span class="opt-text">A Shopee é top!</span>
+                    <span class="opt-check" aria-hidden="true"></span>
+                </button>
+            </div>
+        </section>
+
+        <!-- Pergunta 6 -->
+        <section class="question" id="p6">
+            <img src="images/10.png" class="q-image" alt="">
+            <h2 class="q-title">Você tem sorte? A seguir vai girar nossa roleta premiada — pode ganhar até 95% OFF!</h2>
+            <div class="options">
+                <button class="opt" type="button" data-q="6" data-v="a">
+                    <span class="opt-icon">🍀</span>
+                    <span class="opt-text">Hoje é meu dia!</span>
+                    <span class="opt-check" aria-hidden="true"></span>
+                </button>
+                <button class="opt" type="button" data-q="6" data-v="b">
+                    <span class="opt-icon">💪</span>
+                    <span class="opt-text">Estou muito confiante!</span>
+                    <span class="opt-check" aria-hidden="true"></span>
+                </button>
+                <button class="opt" type="button" data-q="6" data-v="c">
+                    <span class="opt-icon">😊</span>
+                    <span class="opt-text">Qualquer desconto fico feliz!</span>
+                    <span class="opt-check" aria-hidden="true"></span>
+                </button>
+                <button class="opt" type="button" data-q="6" data-v="d">
+                    <span class="opt-icon">🤞</span>
+                    <span class="opt-text">Nunca ganho em promoções...</span>
+                    <span class="opt-check" aria-hidden="true"></span>
+                </button>
+            </div>
+        </section>
+
+        <button class="next-btn" id="nextBtn" type="button" disabled="">
+            <span id="nextLabel">Próximo</span>
+            <span class="arrow" aria-hidden="true">→</span>
+        </button>
+
+        <div class="dots" id="dots">
+            <span class="current"></span>
+            <span></span>
+            <span></span>
+            <span></span>
+            <span></span>
+            <span></span>
+        </div>
+
+    </main>
+
+    <script>
+        (function () {
+            const TOTAL = 6;
+            let current = 1;
+            const answers = {};
+
+            const $next = document.getElementById('nextBtn');
+            const $label = document.getElementById('nextLabel');
+            const $fill = document.getElementById('progressFill');
+            const $pct = document.getElementById('progressPct');
+            const $step = document.getElementById('curStep');
+            const $dots = document.getElementById('dots').children;
+
+            function updateProgress() {
+                const pct = Math.round((current / TOTAL) * 100);
+                $fill.style.width = pct + '%';
+                $pct.textContent = pct + '%';
+                $step.textContent = current;
+
+                for (let i = 0; i < $dots.length; i++) {
+                    $dots[i].classList.remove('done', 'current');
+                    if (i + 1 < current) $dots[i].classList.add('done');
+                    else if (i + 1 === current) $dots[i].classList.add('current');
+                }
+            }
+
+            function updateNextButton() {
+                const has = !!answers[current];
+                $next.disabled = !has;
+                $label.textContent = current === TOTAL ? 'Resgatar Cupom 🎁' : 'Próximo';
+                if (has) $next.classList.add('pulse');
+                else $next.classList.remove('pulse');
+            }
+
+            // Seleção de opção
+            document.querySelectorAll('.opt').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const q = btn.dataset.q;
+                    const card = btn.closest('.question');
+                    card.querySelectorAll('.opt').forEach(b => b.classList.remove('selected'));
+                    btn.classList.add('selected');
+                    answers[q] = btn.dataset.v;
+                    updateNextButton();
+                });
+            });
+
+            // Avançar
+            $next.addEventListener('click', () => {
+                if (!answers[current]) return;
+
+                if (current < TOTAL) {
+                    document.getElementById('p' + current).classList.remove('active');
+                    current++;
+                    const next = document.getElementById('p' + current);
+                    next.classList.add('active');
+                    updateProgress();
+                    updateNextButton();
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                } else {
+                    // Final → redireciona para a roleta preservando UTMs
+                    const qs = window.location.search || '';
+                    window.location.href = 'roleta/' + qs;
+                }
+            });
+
+            updateProgress();
+            updateNextButton();
+        })();
+    </script>
+
+
+
+</body>
+
+</html>
